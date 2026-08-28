@@ -11,11 +11,16 @@ ws="$1"; REPO_ROOT="$2"; project="$3"; marker="$4"; herdr="${5:-herdr}"
 WORKTREE="$PWD"; WORKSPACE_ID="$ws"
 report() { "$herdr" workspace report-metadata "$ws" --source stu-bootstrap --token setup="$1" >/dev/null; }
 toast()  { "$herdr" notification show "$1" --body "$(basename "$PWD")" --sound "$2" >/dev/null 2>&1; }
+# Any exit before `finished` is set — Ctrl+C, kill, pane closed — leaves the
+# sidebar honest instead of stuck on "⟳ <step>".
+current=""; finished=""
+on_exit() { [ -n "$finished" ] || { report "✗ ${current:-bootstrap} interrupted"; toast "Worktree bootstrap interrupted" request; }; }
+trap on_exit EXIT; trap 'exit 130' INT TERM HUP
 step() {
-  local label="$1"; shift
+  local label="$1"; shift; current="$label"
   report "⟳ $label"; printf '\n\033[1;34m▶ %s\033[0m\n' "$label"
   if "$@"; then printf '\033[1;32m✓ %s\033[0m\n' "$label"
-  else report "✗ $label failed"; toast "Worktree bootstrap failed: $label" request; exit 1; fi
+  else finished=1; report "✗ $label failed"; toast "Worktree bootstrap failed: $label" request; exit 1; fi
 }
 copy_from_root() {
   local f
@@ -29,4 +34,5 @@ copy_from_root() {
 # shellcheck source=/dev/null
 source "$project"
 mkdir -p "$(dirname "$marker")" && : > "$marker"
+finished=1
 "$herdr" workspace report-metadata "$ws" --source stu-bootstrap --clear-token setup >/dev/null; toast "Worktree ready" done
