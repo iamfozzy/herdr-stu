@@ -30,13 +30,33 @@ forks get their remote added automatically. Both actions also appear in the
 command palette and herdr-bar; the plugin closes the palette before opening its
 own popup, since Herdr allows one popup at a time.
 
-### Bootstrap new worktrees
+### Bootstrap new worktrees — per project
 
-On `worktree.created` (however the worktree was made): copy `.env` from the
-source repo if the checkout has none, then — for yarn projects — open a pane in
-the new workspace running `yarn install && yarn build` so the output is
-visible. Progress shows on the space's sidebar row via the `$setup` token and a
-toast fires when it finishes or fails.
+When a worktree is created or opened for the first time, the plugin runs that
+repo's bootstrap script in a visible pane inside the new workspace. Progress
+shows on the space's sidebar row via the `$setup` token and a toast fires when
+it finishes or fails. Each checkout is bootstrapped once; reopening it later is
+a no-op.
+
+Scripts live in the plugin's config dir, one per repo, named after the repo's
+root checkout directory:
+
+```bash
+mkdir -p "$(herdr plugin config-dir stu)/projects"
+cp examples/yarn-project.sh "$(herdr plugin config-dir stu)/projects/my-app.sh"   # for ~/Dev/my-app
+```
+
+A script is plain bash, sourced inside the new worktree (so `asdf`/`corepack`
+pick the project's toolchain) with two helpers in scope:
+
+```bash
+copy_from_root .env .env.local      # copy from the source repo unless the worktree already has them
+step "yarn install" yarn install    # run a command; ✓/✗ in the pane, progress on the sidebar, abort on failure
+step "yarn build"   yarn build
+```
+
+`$REPO_ROOT`, `$WORKTREE`, and `$WORKSPACE_ID` are also set. Repos without a
+script are left alone.
 
 ### Sidebar tokens for every space
 
@@ -108,8 +128,9 @@ per 60 seconds per workspace, or immediately when the branch changes — about
 |---|---|
 | `herdr-plugin.toml` | manifest: hooks, popup panes, actions, default keys |
 | `on-pane-changed.sh` | startup hook + poller: `$run`, `$git_*`, `$pr_*` tokens |
-| `on-worktree-created.sh` | `worktree.created` hook: `.env` copy, opens the bootstrap pane |
-| `bootstrap.sh` | runs inside the new worktree: `yarn install && yarn build` |
+| `on-worktree.sh` | `worktree.created` / `worktree.opened` hook: opens the bootstrap pane once per checkout |
+| `bootstrap.sh` | runs inside the new worktree: helpers + sources the project script |
+| `examples/yarn-project.sh` | a project script for a yarn repo: `.env` copy, install, build |
 | `open-remote.sh` | the two pickers and the shared checkout routine |
 
 ## Decisions
@@ -121,6 +142,10 @@ per 60 seconds per workspace, or immediately when the branch changes — about
 - **Own poller rather than events only.** Herdr has no event for "the working
   tree changed" or "a process started listening", so a short poll is the only
   way to keep `$git_dirty` and `$run` honest.
+- **Bootstrap on `worktree.opened` too, guarded by a marker.** Opening a PR
+  whose branch is already checked out somewhere emits `opened`, not `created`;
+  without this the first open of that checkout would never bootstrap. The marker
+  stops every later open from reinstalling.
 - **Close the palette, don't fail.** Popups are a singleton; an action launched
   from the command palette would otherwise always fail with "popup already
   open". Closing it via `popup.close` and retrying briefly is the only path that
