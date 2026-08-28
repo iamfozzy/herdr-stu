@@ -7,7 +7,7 @@
 # marker — for retrying after a failure without closing the workspace.
 set -u
 herdr="${HERDR_BIN_PATH:-herdr}"
-ctx="${HERDR_PLUGIN_CONTEXT_JSON:-{\}}"
+ctx="${HERDR_PLUGIN_CONTEXT_JSON:-null}"
 if [ -n "${HERDR_PLUGIN_ACTION_ID:-}" ]; then
   ws=$(jq -r '.workspace_id // empty' <<< "$ctx"); [ -n "$ws" ] || ws="${HERDR_WORKSPACE_ID:?no workspace}"
   info=$("$herdr" workspace list | jq -c --arg w "$ws" '.result.workspaces[] | select(.workspace_id==$w)')

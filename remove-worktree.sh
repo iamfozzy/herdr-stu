@@ -24,7 +24,7 @@ if [ -n "${STU_REMOVE_PATH:-}" ]; then
   ws=""; path="$STU_REMOVE_PATH"; label="${path##*/} (workspace closed)"
   root=$(dirname "$(git -C "$path" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)") || die "$path is not a git worktree"
 else
-  ws=$(jq -r '.workspace_id // empty' <<< "${HERDR_PLUGIN_CONTEXT_JSON:-{\}}")
+  ws=$(jq -r '.workspace_id // empty' <<< "${HERDR_PLUGIN_CONTEXT_JSON:-null}")
   [ -n "$ws" ] || ws="${HERDR_WORKSPACE_ID:-}"
   [ -n "$ws" ] || die "no focused workspace"
   info=$("$herdr" workspace list | jq -c --arg w "$ws" '.result.workspaces[] | select(.workspace_id==$w)')
