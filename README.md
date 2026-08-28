@@ -1,9 +1,9 @@
 # stu — worktree tooling for Herdr
 
 A [Herdr](https://herdr.dev) plugin that makes Git worktrees the unit of work:
-open any PR or remote branch as a worktree from a popup, get it bootstrapped
-automatically, and see each space's git, PR/CI, and running-app state in the
-sidebar.
+open any PR or remote branch as a worktree from a popup, review a branch file
+by file against its PR base, get new worktrees bootstrapped automatically, and
+see each space's git, PR/CI, and running-app state in the sidebar.
 
 ```
 ▶ my-app
@@ -29,6 +29,39 @@ tracking branch if there isn't one, and calls `herdr worktree create` — or
 forks get their remote added automatically. Both actions also appear in the
 command palette and herdr-bar; the plugin closes the palette before opening its
 own popup, since Herdr allows one popup at a time.
+
+### Review a branch file by file
+
+`prefix+shift+r` (or **Review branch file by file** in the palette) asks what
+to diff the focused workspace's branch against — the branch's open PR base
+first if it has one, then origin's default branch, then every other branch by
+recency — and opens the review as a new tab in that workspace:
+
+```
+origin/master ← feat/schema-ai  #1822 Extracted nodes drawer   3/12 reviewed
+ file>
+   src/
+     store/
+   ✓ M   extracted.ts          │ delta diff of the highlighted file
+   ↻ M   index.ts              │
+     A   drawer.tsx            │
+   .changeset/
+   ✓ A   con-5694.md           │
+```
+
+Left: the changed files as a tree with their git status (`A`/`M`/`D`/`R`).
+Right: the file's diff through [delta](https://github.com/dandavison/delta)
+(plain `git diff --color` if delta isn't installed); a directory row previews
+its diffstat. `enter` ticks a file ✓ and moves on. Ticks persist per
+(checkout, base, head), so you can leave and come back — and if the branch is
+pushed to again, files whose diff changed since you ticked them flip to `↻`
+instead of silently staying green. `ctrl-o` opens the file in `$EDITOR`,
+`ctrl-y` copies its path, `ctrl-r` refetches the base, `ctrl-a`/`ctrl-x` tick
+or untick everything, `ctrl-d`/`ctrl-u` scroll the diff.
+
+`ctrl-w` switches from reviewing the branch's commits to reviewing the
+**working tree** against the merge base — staged, unstaged and untracked
+files included — for a last look over local work before pushing it.
 
 ### Remove a worktree — including ones with submodules
 
@@ -107,7 +140,8 @@ herdr server reload-config
 Or for hacking on it: `git clone` this repo, then `herdr plugin link "$PWD"`.
 
 **Dependencies:** `git`, `jq`, `fzf`, `gh` (logged in — only needed for PR
-features), plus `nc` and `lsof`, which ship with macOS and most Linux distros.
+features), `delta` (optional, prettier review diffs), plus `nc` and `lsof`,
+which ship with macOS and most Linux distros.
 
 ## Configure the sidebar
 
@@ -129,8 +163,8 @@ rows = [
 ```
 
 To change the keys — or bind the remove action — add `[[keys.command]]` entries
-to `config.toml` pointing at `stu.open-pr`, `stu.open-branch`, or
-`stu.remove-worktree`.
+to `config.toml` pointing at `stu.open-pr`, `stu.open-branch`, `stu.review`,
+or `stu.remove-worktree`.
 
 ## How it works
 
@@ -155,6 +189,7 @@ per 60 seconds per workspace, or immediately when the branch changes — about
 | `clear-setup.sh` | action: clear a stale `$setup` token on the focused workspace |
 | `examples/yarn-project.sh` | a project script for a yarn repo: `.env` copy, install, build |
 | `open-remote.sh` | the two pickers, the shared checkout routine, and the popup launcher |
+| `review.sh` | base picker popup, the review pane (fzf tree + delta preview), and its fzf callbacks |
 | `on-workspace-closed.sh` | `workspace.closed` hook: offers to delete a closed worktree's checkout |
 | `remove-worktree.sh` | confirm-and-delete popup, for the focused workspace or a just-closed one |
 
@@ -178,6 +213,13 @@ per 60 seconds per workspace, or immediately when the branch changes — about
   lives inside git's clean-tree check, so `--force` is the only way past it — but
   it also skips the dirty-tree refusal, which is why the popup shows uncommitted
   changes before asking.
+- **Review state keyed by blob fingerprints, not "reviewed" flags.** A tick
+  stores the file's before/after blob ids. When the branch changes under you
+  the ids change too, so a re-pushed file shows `↻` for free — no timestamps,
+  no re-diffing, one `git diff --raw` per redraw even on a thousand-file PR.
+- **Review opens as a tab, not a popup.** Popups are session-modal and
+  singletons; a review you flick between while chatting to an agent has to be
+  a real pane. Only the base picker is a popup.
 - **Close the palette, don't fail.** Popups are a singleton; an action launched
   from the command palette would otherwise always fail with "popup already
   open". Closing it via `popup.close` and retrying briefly is the only path that
