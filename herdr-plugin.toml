@@ -1,0 +1,69 @@
+id = "stu"
+name = "Stu"
+version = "0.5.0"
+min_herdr_version = "0.8.2"
+description = "Stu's worktree tooling. On new worktree: copy .env from the source repo, run yarn install && yarn build in a visible pane with sidebar status; report per-workspace $run (running app) and $git_dirty / $git_conflict (working-tree state) and $pr_pass / $pr_fail / $pr_pending (open GitHub PR + CI) Space tokens; popups to open a PR or any remote branch as a worktree"
+platforms = ["macos", "linux"]
+
+[[startup]]
+command = ["bash", "on-pane-changed.sh"]
+
+[[events]]
+on = "worktree.created"
+command = ["bash", "on-worktree-created.sh"]
+
+[[events]]
+on = "pane.created"
+command = ["bash", "on-pane-changed.sh"]
+
+[[events]]
+on = "pane.focused"
+command = ["bash", "on-pane-changed.sh"]
+
+[[events]]
+on = "pane.exited"
+command = ["bash", "on-pane-changed.sh"]
+
+[[events]]
+on = "pane.closed"
+command = ["bash", "on-pane-changed.sh"]
+
+[[panes]]
+id = "pick-pr"
+title = "Open PR as worktree"
+placement = "popup"
+width = "85%"
+height = "70%"
+command = ["bash", "open-remote.sh", "pick-pr"]
+
+[[panes]]
+id = "pick-branch"
+title = "Open remote branch as worktree"
+placement = "popup"
+width = "85%"
+height = "70%"
+command = ["bash", "open-remote.sh", "pick-branch"]
+
+[[actions]]
+id = "open-pr"
+title = "Open PR as worktree"
+contexts = ["workspace"]
+command = ["bash", "open-remote.sh", "launch", "pick-pr"]
+
+[[actions]]
+id = "open-branch"
+title = "Open remote branch as worktree"
+contexts = ["workspace"]
+command = ["bash", "open-remote.sh", "launch", "pick-branch"]
+
+[[keys.command]]
+key = "prefix+shift+o"
+type = "plugin_action"
+command = "stu.open-pr"
+description = "open a GitHub PR's branch as a worktree"
+
+[[keys.command]]
+key = "prefix+shift+b"
+type = "plugin_action"
+command = "stu.open-branch"
+description = "open a remote branch as a worktree"
