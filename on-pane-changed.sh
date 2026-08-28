@@ -128,7 +128,7 @@ if [ "${HERDR_PLUGIN_EVENT:-}" = "startup" ]; then
   exit 0
 fi
 
-ev="${HERDR_PLUGIN_EVENT_JSON:-{\}}"
+ev="${HERDR_PLUGIN_EVENT_JSON:-null}"
 ws=$(jq -r '.data.pane.workspace_id // .data.workspace_id // empty' <<< "$ev")
 [ -n "$ws" ] || ws="${HERDR_WORKSPACE_ID:-}"
 [ -n "$ws" ] || exit 0
