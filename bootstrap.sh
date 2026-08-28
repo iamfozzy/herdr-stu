@@ -19,8 +19,10 @@ trap on_exit EXIT; trap 'exit 130' INT TERM HUP
 step() {
   local label="$1"; shift; current="$label"
   report "⟳ $label"; printf '\n\033[1;34m▶ %s\033[0m\n' "$label"
-  if "$@"; then printf '\033[1;32m✓ %s\033[0m\n' "$label"; return; fi
-  local rc=$? why=failed; [ "$rc" -ge 128 ] && why=interrupted   # killed by a signal (Ctrl+C = 130)
+  local rc why=failed
+  "$@"; rc=$?
+  if [ "$rc" -eq 0 ]; then printf '\033[1;32m✓ %s\033[0m\n' "$label"; return; fi
+  [ "$rc" -ge 128 ] && why=interrupted   # killed by a signal (Ctrl+C = 130)
   finished=1; report "✗ $label $why"; toast "Worktree bootstrap $why: $label" request; exit "$rc"
 }
 copy_from_root() {
