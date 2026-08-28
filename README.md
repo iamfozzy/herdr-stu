@@ -72,6 +72,11 @@ step "yarn build"   yarn build
 `$REPO_ROOT`, `$WORKTREE`, and `$WORKSPACE_ID` are also set. Repos without a
 script are left alone.
 
+If a step fails, or you Ctrl+C the pane, the sidebar shows `✗ <step> failed` /
+`✗ <step> interrupted`, no marker is written, and the next open of that checkout
+runs the bootstrap again. **Clear bootstrap status** in the command palette
+removes the `✗` from the focused workspace if you want it gone sooner.
+
 ### Sidebar tokens for every space
 
 Reported per workspace (worktrees included) so you can place and colour them in
@@ -145,6 +150,7 @@ per 60 seconds per workspace, or immediately when the branch changes — about
 | `on-pane-changed.sh` | startup hook + poller: `$run`, `$git_*`, `$pr_*` tokens |
 | `on-worktree.sh` | `worktree.created` / `worktree.opened` hook: opens the bootstrap pane once per checkout |
 | `bootstrap.sh` | runs inside the new worktree: helpers + sources the project script |
+| `clear-setup.sh` | action: clear a stale `$setup` token on the focused workspace |
 | `examples/yarn-project.sh` | a project script for a yarn repo: `.env` copy, install, build |
 | `open-remote.sh` | the two pickers, the shared checkout routine, and the popup launcher |
 | `on-workspace-closed.sh` | `workspace.closed` hook: offers to delete a closed worktree's checkout |
