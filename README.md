@@ -74,8 +74,9 @@ script are left alone.
 
 If a step fails, or you Ctrl+C the pane, the sidebar shows `✗ <step> failed` /
 `✗ <step> interrupted`, no marker is written, and the next open of that checkout
-runs the bootstrap again. **Clear bootstrap status** in the command palette
-removes the `✗` from the focused workspace if you want it gone sooner.
+runs the bootstrap again. From the command palette, **Run bootstrap on this
+worktree** reruns it on the focused workspace right away, and **Clear bootstrap
+status** just removes the `✗`.
 
 ### Sidebar tokens for every space
 
@@ -148,7 +149,7 @@ per 60 seconds per workspace, or immediately when the branch changes — about
 |---|---|
 | `herdr-plugin.toml` | manifest: hooks, popup panes, actions, default keys |
 | `on-pane-changed.sh` | startup hook + poller: `$run`, `$git_*`, `$pr_*` tokens |
-| `on-worktree.sh` | `worktree.created` / `worktree.opened` hook: opens the bootstrap pane once per checkout |
+| `on-worktree.sh` | `worktree.created` / `worktree.opened` hook (once per checkout) and the "Run bootstrap" action |
 | `bootstrap.sh` | runs inside the new worktree: helpers + sources the project script |
 | `clear-setup.sh` | action: clear a stale `$setup` token on the focused workspace |
 | `examples/yarn-project.sh` | a project script for a yarn repo: `.env` copy, install, build |
