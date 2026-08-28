@@ -74,7 +74,8 @@ script are left alone.
 
 If a step fails, or you Ctrl+C the pane, the sidebar shows `✗ <step> failed` /
 `✗ <step> interrupted`, no marker is written, and the next open of that checkout
-runs the bootstrap again. From the command palette, **Run bootstrap on this
+runs the bootstrap again. Closing the bootstrap pane clears the status
+outright. From the command palette, **Run bootstrap on this
 worktree** reruns it on the focused workspace right away, and **Clear bootstrap
 status** just removes the `✗`.
 

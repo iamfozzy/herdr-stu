@@ -4,6 +4,7 @@
 #                 foreground command ("▶ yarn dev"). Clears when nothing runs.
 #   $git_dirty    working-tree state: "+staged ~modified ?untracked".
 #   $git_conflict unmerged paths: "!N" (own token so config can colour it red).
+#   (pane.closed of the bootstrap pane also clears $setup — see below.)
 #   $pr_pass / $pr_fail / $pr_pending
 #                 open GitHub PR for the branch + CI rollup: "#1705 ✓|✗|●".
 #                 Exactly one is set so config can colour each state; refreshed
@@ -132,6 +133,15 @@ ev="${HERDR_PLUGIN_EVENT_JSON:-null}"
 ws=$(jq -r '.data.pane.workspace_id // .data.workspace_id // empty' <<< "$ev")
 [ -n "$ws" ] || ws="${HERDR_WORKSPACE_ID:-}"
 [ -n "$ws" ] || exit 0
+
+# The bootstrap pane was closed: the script cannot report any more, so drop
+# the $setup token rather than leave "⟳ yarn build" stuck on the row.
+if [ "$HERDR_PLUGIN_EVENT" = "pane.closed" ]; then
+  rec="$state/bootstrap-pane/$ws"
+  if [ -f "$rec" ] && [ "$(cat "$rec")" = "$(jq -r '.data.pane_id // .data.pane.pane_id // empty' <<< "$ev")" ]; then
+    "$herdr" workspace report-metadata "$ws" --source stu-bootstrap --clear-token setup >/dev/null; rm -f "$rec"
+  fi
+fi
 
 # Coalesce: first hook in a burst waits briefly then scans; the rest exit.
 lock="$state/run-scan-$ws.lock"

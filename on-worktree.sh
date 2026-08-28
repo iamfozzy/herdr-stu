@@ -44,4 +44,6 @@ new=$("$herdr" pane split "$pane" --direction down --ratio 0.35 --cwd "$wt" --no
       | jq -r '[.. | objects | .pane_id? // empty] | last')
 if [ -z "$new" ] || [ "$new" = "null" ]; then report "✗ could not open bootstrap pane"; exit 1; fi
 "$herdr" pane rename "$new" "bootstrap" >/dev/null
+# Remembered so on-pane-changed.sh can clear the $setup token if this pane is closed.
+mkdir -p "$HERDR_PLUGIN_STATE_DIR/bootstrap-pane" && printf '%s' "$new" > "$HERDR_PLUGIN_STATE_DIR/bootstrap-pane/$ws"
 "$herdr" pane run "$new" "bash '$HERDR_PLUGIN_ROOT/bootstrap.sh' '$ws' '$root' '$project' '$marker' '$herdr'"
