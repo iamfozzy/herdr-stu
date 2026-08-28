@@ -90,7 +90,7 @@ Reported per workspace (worktrees included) so you can place and colour them in
 | `$git_conflict` | unmerged paths | `!2` |
 | `$pr_pass` `$pr_fail` `$pr_pending` | open PR number + CI rollup; exactly one is set | `#1822 ✓` `#1820 ✗` `#1821 ●` |
 | `$run` | listening ports, or a dev-server-looking foreground command | `▶ :5173` `▶ yarn dev` |
-| `$setup` | bootstrap progress | `⟳ yarn install` |
+| `$setup` | bootstrap progress | `◐  yarn install` |
 
 Tokens disappear when there's nothing to say (clean tree, no open PR, nothing
 running). Herdr's built-in `branch` and `git_status` (ahead/behind) tokens

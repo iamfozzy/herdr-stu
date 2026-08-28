@@ -12,25 +12,25 @@ WORKTREE="$PWD"; WORKSPACE_ID="$ws"
 report() { "$herdr" workspace report-metadata "$ws" --source stu-bootstrap --token setup="$1" >/dev/null; }
 toast()  { "$herdr" notification show "$1" --body "$(basename "$PWD")" --sound "$2" >/dev/null 2>&1; }
 # Any exit before `finished` is set — Ctrl+C, kill, pane closed — leaves the
-# sidebar honest instead of stuck on "⟳ <step>".
+# sidebar honest instead of stuck on "◐  <step>".
 current=""; finished=""
-on_exit() { [ -n "$finished" ] || { report "✗ ${current:-bootstrap} interrupted"; toast "Worktree bootstrap interrupted" request; }; }
+on_exit() { [ -n "$finished" ] || { report "✗  ${current:-bootstrap} interrupted"; toast "Worktree bootstrap interrupted" request; }; }
 trap on_exit EXIT; trap 'exit 130' INT TERM HUP
 step() {
   local label="$1"; shift; current="$label"
-  report "⟳ $label"; printf '\n\033[1;34m▶ %s\033[0m\n' "$label"
+  report "◐  $label"; printf '\n\033[1;34m▶ %s\033[0m\n' "$label"
   local rc why=failed
   "$@"; rc=$?
   if [ "$rc" -eq 0 ]; then printf '\033[1;32m✓ %s\033[0m\n' "$label"; return; fi
   [ "$rc" -ge 128 ] && why=interrupted   # killed by a signal (Ctrl+C = 130)
-  finished=1; report "✗ $label $why"; toast "Worktree bootstrap $why: $label" request; exit "$rc"
+  finished=1; report "✗  $label $why"; toast "Worktree bootstrap $why: $label" request; exit "$rc"
 }
 copy_from_root() {
   local f
   for f in "$@"; do
     if [ -e "$REPO_ROOT/$f" ] && [ ! -e "$WORKTREE/$f" ]; then
       mkdir -p "$(dirname "$WORKTREE/$f")" && cp -R "$REPO_ROOT/$f" "$WORKTREE/$f" && printf '\033[1;32m✓ copied %s\033[0m\n' "$f" \
-        || { report "✗ copy $f failed"; exit 1; }
+        || { report "✗  copy $f failed"; exit 1; }
     fi
   done
 }
