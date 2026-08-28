@@ -1,13 +1,23 @@
 #!/bin/bash
 # Popup: delete a worktree checkout — the focused workspace's, or the one named
 # by STU_REMOVE_PATH when launched from the workspace.closed hook — forcing past git's
+# refusal on populated submodules. After `y` the deletion runs detached and a toast
+# reports the outcome, so the popup closes immediately.
 # refusal to remove trees with populated submodules. Shows the dirty state
 # first because --force also skips git's dirty-tree check. Never deletes the
 # branch. Launched via `open-remote.sh launch confirm-remove [--env STU_REMOVE_PATH=…]`.
 set -u
 herdr="${HERDR_BIN_PATH:-herdr}"
-tmp=$(mktemp); trap 'rm -f "$tmp"' EXIT
 die() { printf '\n\033[31m%s\033[0m\n' "$1"; read -rsn1 -p 'press any key'; exit 1; }
+
+if [ "${1:-}" = "do-remove" ]; then
+  ws="$2"; root="$3"; path="$4"; name="${path##*/}"
+  if [ -n "$ws" ]; then out=$("$herdr" worktree remove --workspace "$ws" --force 2>&1); rc=$?
+  else out=$(git -C "$root" worktree remove --force "$path" 2>&1); rc=$?; fi
+  if [ "$rc" -eq 0 ]; then "$herdr" notification show "Worktree deleted" --body "$name" --sound done >/dev/null 2>&1
+  else "$herdr" notification show "Worktree delete failed" --body "$name: ${out:0:200}" --sound request >/dev/null 2>&1; fi
+  exit 0
+fi
 
 if [ -n "${STU_REMOVE_PATH:-}" ]; then
   # From the workspace.closed hook: the workspace is gone, so work from the path.
@@ -33,12 +43,8 @@ if [ "$dirty" -gt 0 ]; then printf '  \033[33mdirty    %s uncommitted change(s) 
 printf '\nThe branch is kept. Delete the checkout? [y/N] '
 read -rsn1 ans; echo
 [[ "$ans" =~ ^[yY]$ ]] || exit 0
-size=$(du -sh "$path" 2>/dev/null | cut -f1)
-printf '\n⟳ deleting %s%s …' "$path" "${size:+ ($size)}"
-if [ -n "$ws" ]; then "$herdr" worktree remove --workspace "$ws" --force >"$tmp" 2>&1 &
-else git -C "$root" worktree remove --force "$path" >"$tmp" 2>&1 &
-fi
-job=$!; i=0; sp='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-while kill -0 "$job" 2>/dev/null; do printf '\r⟳ deleting %s%s … %s' "$path" "${size:+ ($size)}" "${sp:i%10:1}"; i=$((i+1)); sleep 0.1; done
-if wait "$job"; then printf '\r\033[32m✓ deleted %s%s\033[0m\n' "$path" "${size:+ ($size)}"; sleep 1
-else die "remove failed: $(cat "$tmp")"; fi
+# Detach the deletion so the popup closes at once; a toast reports the outcome.
+nohup bash "$0" do-remove "$ws" "$root" "$path" </dev/null >/dev/null 2>&1 &
+disown 2>/dev/null || true
+printf '⟳ deleting %s in the background — you will get a notification when it is done\n' "${path##*/}"
+sleep 1.2
