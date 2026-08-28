@@ -1,8 +1,9 @@
 #!/bin/bash
 # Open a remote branch as a Herdr worktree, picked from a popup.
-#   launch <pane-id>  action entrypoint: close whatever popup is up (the command
-#                     palette, usually — popups are a singleton), then open the
-#                     picker pane named by <pane-id>.
+#   launch <pane-id> [pane-open args…]
+#                     close whatever popup is up (the command palette, usually —
+#                     popups are a singleton), then open the pane named by
+#                     <pane-id>; extra args go to `herdr plugin pane open`.
 #   pick-pr           popup: fzf over the repo's open GitHub PRs.
 #   pick-branch       popup: fzf over every remote branch, newest commit first.
 # On pick: fetch the branch, create a local tracking branch if needed, and hand
@@ -47,10 +48,10 @@ checkout() {
 
 case "${1:-}" in
 launch)
-  pane="${2:?pane id}"
+  pane="${2:?pane id}"; shift 2   # remaining args (e.g. --env K=V) pass through to pane open
   api popup.close >/dev/null
   for _ in 1 2 3 4 5 6 7 8; do
-    out=$("$herdr" plugin pane open --plugin "$HERDR_PLUGIN_ID" --entrypoint "$pane" --placement popup --focus 2>&1) && exit 0
+    out=$("$herdr" plugin pane open --plugin "$HERDR_PLUGIN_ID" --entrypoint "$pane" --placement popup --focus "$@" 2>&1) && exit 0
     grep -qE 'popup already open|ui_busy' <<< "$out" || { echo "$out" >&2; exit 1; }
     sleep 0.15
   done
@@ -94,5 +95,5 @@ pick-branch)
   IFS=$'\t' read -r branch _ <<< "$pick"
   checkout origin "$branch" "$branch" ;;
 
-*) echo "usage: open-remote.sh launch <pane-id> | pick-pr | pick-branch" >&2; exit 2 ;;
+*) echo "usage: open-remote.sh launch <pane-id> [pane-open args…] | pick-pr | pick-branch" >&2; exit 2 ;;
 esac

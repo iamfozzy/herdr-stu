@@ -30,14 +30,19 @@ forks get their remote added automatically. Both actions also appear in the
 command palette and herdr-bar; the plugin closes the palette before opening its
 own popup, since Herdr allows one popup at a time.
 
-### Remove a worktree that has submodules
+### Remove a worktree — including ones with submodules
 
 Git refuses `git worktree remove` on a checkout with populated submodules
 ("working trees containing submodules cannot be moved or removed"), and Herdr's
-built-in remove inherits that. **Remove worktree** — in the command palette, no
-default key since it's destructive — shows the checkout's path, branch,
-ahead/behind, and uncommitted-change count, asks for a `y`, then runs
-`herdr worktree remove --force`. The branch is always kept.
+built-in remove inherits that. Two ways round it, both through the same confirm
+popup — path, branch, ahead/behind, uncommitted-change count, then `y` to
+delete. The branch is always kept.
+
+- **Close the workspace** (right-click → close, or `prefix+shift+d`). Herdr
+  leaves the checkout on disk; the plugin notices a worktree workspace closed
+  and asks whether to delete the checkout too. Anything but `y` keeps it.
+- **Remove worktree** in the command palette does the same for the focused
+  workspace without closing it first. No default key since it's destructive.
 
 ### Bootstrap new worktrees — per project
 
@@ -142,7 +147,8 @@ per 60 seconds per workspace, or immediately when the branch changes — about
 | `bootstrap.sh` | runs inside the new worktree: helpers + sources the project script |
 | `examples/yarn-project.sh` | a project script for a yarn repo: `.env` copy, install, build |
 | `open-remote.sh` | the two pickers, the shared checkout routine, and the popup launcher |
-| `remove-worktree.sh` | confirm-and-remove popup for worktrees with submodules |
+| `on-workspace-closed.sh` | `workspace.closed` hook: offers to delete a closed worktree's checkout |
+| `remove-worktree.sh` | confirm-and-delete popup, for the focused workspace or a just-closed one |
 
 ## Decisions
 
@@ -157,6 +163,9 @@ per 60 seconds per workspace, or immediately when the branch changes — about
   whose branch is already checked out somewhere emits `opened`, not `created`;
   without this the first open of that checkout would never bootstrap. The marker
   stops every later open from reinstalling.
+- **Ask on close, never delete silently.** Herdr's `workspace close` keeps the
+  checkout on purpose and people close workspaces just to tidy up, so the hook
+  only ever asks, defaulting to keep.
 - **`--force` for removal, after showing the dirty count.** The submodule check
   lives inside git's clean-tree check, so `--force` is the only way past it — but
   it also skips the dirty-tree refusal, which is why the popup shows uncommitted
