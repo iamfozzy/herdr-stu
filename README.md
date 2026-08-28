@@ -30,6 +30,15 @@ forks get their remote added automatically. Both actions also appear in the
 command palette and herdr-bar; the plugin closes the palette before opening its
 own popup, since Herdr allows one popup at a time.
 
+### Remove a worktree that has submodules
+
+Git refuses `git worktree remove` on a checkout with populated submodules
+("working trees containing submodules cannot be moved or removed"), and Herdr's
+built-in remove inherits that. **Remove worktree** — in the command palette, no
+default key since it's destructive — shows the checkout's path, branch,
+ahead/behind, and uncommitted-change count, asks for a `y`, then runs
+`herdr worktree remove --force`. The branch is always kept.
+
 ### Bootstrap new worktrees — per project
 
 When a worktree is created or opened for the first time, the plugin runs that
@@ -107,8 +116,9 @@ rows = [
 ]
 ```
 
-To change the keys, add `[[keys.command]]` entries to `config.toml` pointing at
-`stu.open-pr` and `stu.open-branch`.
+To change the keys — or bind the remove action — add `[[keys.command]]` entries
+to `config.toml` pointing at `stu.open-pr`, `stu.open-branch`, or
+`stu.remove-worktree`.
 
 ## How it works
 
@@ -131,7 +141,8 @@ per 60 seconds per workspace, or immediately when the branch changes — about
 | `on-worktree.sh` | `worktree.created` / `worktree.opened` hook: opens the bootstrap pane once per checkout |
 | `bootstrap.sh` | runs inside the new worktree: helpers + sources the project script |
 | `examples/yarn-project.sh` | a project script for a yarn repo: `.env` copy, install, build |
-| `open-remote.sh` | the two pickers and the shared checkout routine |
+| `open-remote.sh` | the two pickers, the shared checkout routine, and the popup launcher |
+| `remove-worktree.sh` | confirm-and-remove popup for worktrees with submodules |
 
 ## Decisions
 
@@ -146,6 +157,10 @@ per 60 seconds per workspace, or immediately when the branch changes — about
   whose branch is already checked out somewhere emits `opened`, not `created`;
   without this the first open of that checkout would never bootstrap. The marker
   stops every later open from reinstalling.
+- **`--force` for removal, after showing the dirty count.** The submodule check
+  lives inside git's clean-tree check, so `--force` is the only way past it — but
+  it also skips the dirty-tree refusal, which is why the popup shows uncommitted
+  changes before asking.
 - **Close the palette, don't fail.** Popups are a singleton; an action launched
   from the command palette would otherwise always fail with "popup already
   open". Closing it via `popup.close` and retrying briefly is the only path that
