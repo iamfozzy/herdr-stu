@@ -17,10 +17,13 @@ api() { # $1 method, $2 params JSON (default empty object). Newline-delimited JS
   printf '{"id":"open-remote","method":"%s","params":%s}\n' "$1" "$params" | nc -U -w 2 "$sock" 2>/dev/null
 }
 
-repo_root() { # focused workspace's repo, else the first worktree workspace
-  "$herdr" workspace list 2>/dev/null | jq -r '
-    [.result.workspaces[] | select(.worktree != null)] as $w
-    | ($w | map(select(.focused)) + $w)[0].worktree.repo_root // empty'
+repo_root() { # focused pane's repo, else the first pane's repo
+  local cwd
+  cwd=$("$herdr" pane list 2>/dev/null | jq -r '
+    [.result.panes[] | select(.cwd != null)] as $p
+    | ($p | map(select(.focused)) + $p)[0] | (.foreground_cwd // .cwd) // empty')
+  [ -n "$cwd" ] || return
+  git -C "$cwd" rev-parse --show-toplevel 2>/dev/null
 }
 
 die() { printf '\n\033[31m%s\033[0m\n' "$1"; read -rsn1 -p 'press any key'; exit 1; }
